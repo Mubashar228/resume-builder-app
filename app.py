@@ -2,66 +2,47 @@ import streamlit as st
 import openai
 import os
 
-# Set your OpenAI API key (better to use secrets in production)
-openai.api_key = os.getenv("OPENAI_API_KEY")  # or replace with your key directly
+# OpenAI API key (add your key here or use dotenv)
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-st.set_page_config(page_title="AI Resume Builder", page_icon="🧠")
+# Streamlit Web App
+st.set_page_config(page_title="AI Resume Generator", layout="centered")
+st.title("🧠 AI Resume Summary Generator")
 
-st.title("🤖 AI-Powered Resume Generator")
-st.write("Enter your information and let AI generate a professional resume for you!")
+# Input fields
+name = st.text_input("Your Full Name")
+role = st.text_input("Target Job Role", placeholder="e.g. Data Scientist, Software Engineer")
+skills = st.text_area("Your Top Skills", placeholder="e.g. Python, Machine Learning, SQL")
+experience = st.text_area("Brief Work Experience", placeholder="e.g. 3 years in data analytics at ABC Corp.")
+education = st.text_area("Educational Background", placeholder="e.g. BS in Computer Science from XYZ University")
 
-# --- User Input ---
-name = st.text_input("Full Name")
-email = st.text_input("Email Address")
-phone = st.text_input("Phone Number")
-summary = st.text_area("Professional Summary")
-skills = st.text_area("List Your Skills (comma-separated)")
-experience = st.text_area("Work Experience")
-education = st.text_area("Education Background")
+# Generate Resume Summary
+if st.button("Generate Summary"):
+    if not (name and role and skills and experience and education):
+        st.warning("Please fill in all fields.")
+    else:
+        with st.spinner("Generating your resume summary..."):
+            prompt = f"""
+You are an expert resume writer. Write a short, professional, and impactful resume summary for the following person:
 
-if st.button("Generate Resume"):
-    if name and summary and skills:
-        prompt = f"""
-        Generate a professional resume based on the following details:
+Name: {name}
+Target Role: {role}
+Skills: {skills}
+Experience: {experience}
+Education: {education}
 
-        Name: {name}
-        Email: {email}
-        Phone: {phone}
+The summary should be suitable for the top section of a resume and within 80–120 words.
+"""
 
-        Summary:
-        {summary}
-
-        Skills:
-        {skills}
-
-        Experience:
-        {experience}
-
-        Education:
-        {education}
-
-        Format the resume in a clean and readable way with sections.
-        """
-        with st.spinner("Generating your resume..."):
             try:
-                response = openai.ChatCompletion.create(
+                response = openai.chat.completions.create(
                     model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": "You are a resume writing assistant."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    max_tokens=800,
-                    temperature=0.7
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.7,
+                    max_tokens=200
                 )
-                generated_resume = response['choices'][0]['message']['content']
-                st.success("Resume generated successfully!")
-                st.download_button("📄 Download Resume as .txt", generated_resume, file_name=f"{name}_Resume.txt")
-                st.text_area("📝 Preview:", generated_resume, height=400)
+                summary = response.choices[0].message.content.strip()
+                st.subheader("📄 Generated Resume Summary")
+                st.success(summary)
             except Exception as e:
                 st.error(f"Error: {e}")
-    else:
-        st.warning("Please fill at least your name, summary, and skills.")
-
-# Footer
-st.markdown("---")
-st.markdown("Built with ❤️ using Streamlit and OpenAI")
